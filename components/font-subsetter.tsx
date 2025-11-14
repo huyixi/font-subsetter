@@ -1,13 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import type { PresetCharsetId, PresetCharsetMeta } from "@/lib/presetCharsets";
-import {
-  DEFAULT_OUTPUT_FORMAT,
-  OUTPUT_FORMATS,
-  buildSubsetFilename,
-  type OutputFormat,
-} from "@/lib/outputFormats";
+import { useEffect, useState } from "react";
+import type { PresetCharsetMeta } from "@/lib/presetCharsets";
+import { OUTPUT_FORMATS } from "@/lib/outputFormats";
+import { useFontSubsetter } from "@/hooks/use-font-subsetter";
 import CharacterPresets from "./character-presets";
 import FileUploadArea from "./file-upload-area";
 import CharacterInput from "./character-input";
@@ -17,141 +13,32 @@ interface FontSubsetterProps {
   presets: PresetCharsetMeta[];
 }
 
-type PresetState = Record<PresetCharsetId, boolean>;
-
-const buildPresetState = (presetList: PresetCharsetMeta[]): PresetState => {
-  return presetList.reduce<PresetState>((acc, preset) => {
-    acc[preset.id] = false;
-    return acc;
-  }, {} as PresetState);
-};
-
 export default function FontSubsetter({ presets }: FontSubsetterProps) {
-  const [uploadedFont, setUploadedFont] = useState<File | null>(null);
-  const [characters, setCharacters] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
-  const [statusMessage, setStatusMessage] = useState("");
-  const [addedPresets, setAddedPresets] = useState<PresetState>(() =>
-    buildPresetState(presets),
-  );
+  const {
+    characters,
+    characterCount,
+    uploadedFont,
+    outputFormat,
+    addedPresets,
+    status,
+    isProcessing,
+    canGenerate,
+    selectFont,
+    updateCharacters,
+    applyPreset,
+    setOutputFormat,
+    generateSubset,
+  } = useFontSubsetter(presets);
   const [isVisible, setIsVisible] = useState(false);
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>(
-    DEFAULT_OUTPUT_FORMAT,
-  );
-  const presetCache = useRef<Partial<Record<PresetCharsetId, string>>>({});
-
-  useEffect(() => {
-    setAddedPresets(buildPresetState(presets));
-    presetCache.current = {};
-  }, [presets]);
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  const handleFontUpload = (file: File) => {
-    setUploadedFont(file);
-    setStatus("idle");
-  };
-
-  const handleCharacterChange = (value: string) => {
-    setCharacters(value);
-  };
-
-  const handlePresetAdd = async (presetKey: PresetCharsetId) => {
-    setStatus("idle");
-    setStatusMessage("");
-
-    try {
-      let presetChars = presetCache.current[presetKey];
-
-      if (!presetChars) {
-        const response = await fetch(`/api/presets/${presetKey}`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to load preset ${presetKey}`);
-        }
-
-        const data = (await response.json()) as { characters: string };
-        presetChars = data.characters.trim();
-        presetCache.current[presetKey] = presetChars;
-      }
-
-      setCharacters((prev) => prev + presetChars);
-      setAddedPresets((prev) => ({
-        ...prev,
-        [presetKey]: true,
-      }));
-    } catch (error) {
-      console.error(error);
-      setStatus("error");
-      setStatusMessage("加载预设字符集失败，请稍后重试");
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!uploadedFont) {
-      setStatus("error");
-      setStatusMessage("请先上传字体文件");
-      return;
-    }
-
-    if (characters.trim().length === 0) {
-      setStatus("error");
-      setStatusMessage("请输入或选择要保留的字符");
-      return;
-    }
-
-    setIsGenerating(true);
-    setStatus("idle");
-
-    try {
-      const formData = new FormData();
-      formData.append("font", uploadedFont);
-      formData.append("characters", characters);
-      formData.append("format", outputFormat);
-
-      const response = await fetch("/api/subset", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        let errorMessage = "字体子集生成失败";
-        try {
-          const errorData = (await response.json()) as { error?: string };
-          if (errorData?.error) {
-            errorMessage = errorData.error;
-          }
-        } catch {
-          // ignore JSON parsing errors
-        }
-        throw new Error(errorMessage);
-      }
-
-      const blob = await response.blob();
-      const downloadName = buildSubsetFilename(uploadedFont.name, outputFormat);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = downloadName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      setStatus("success");
-      setStatusMessage(`字体子集（${outputFormat.toUpperCase()}）已生成并下载`);
-    } catch (error) {
-      setStatus("error");
-      setStatusMessage(
-        error instanceof Error ? error.message : "生成字体子集时出错",
-      );
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  const shouldShowStatus =
+    status.type === "success" || status.type === "error";
+  const statusTone =
+    status.type === "success" ? "success" : status.type === "error" ? "error" : null;
 
   return (
     <div
@@ -217,10 +104,7 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
               <div className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4 pl-1">
                 第一步 · 上传字体
               </div>
-              <FileUploadArea
-                onFontUpload={handleFontUpload}
-                uploadedFont={uploadedFont}
-              />
+              <FileUploadArea onFontUpload={selectFont} uploadedFont={uploadedFont} />
             </div>
 
             {/* Presets and character input in two column layout */}
@@ -248,7 +132,7 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
                     </div>
                     <CharacterPresets
                       presets={presets}
-                      onPresetAdd={handlePresetAdd}
+                      onPresetAdd={applyPreset}
                       addedPresets={addedPresets}
                     />
                   </div>
@@ -256,7 +140,7 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
                   <div>
                     <CharacterInput
                       value={characters}
-                      onChange={handleCharacterChange}
+                      onChange={updateCharacters}
                     />
                   </div>
                 </div>
@@ -294,7 +178,7 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
                         字符数
                       </p>
                       <p className="text-sm text-fg-secondary font-mono font-medium select-none">
-                        {characters.length} 字符
+                        {characterCount} 字符
                       </p>
                     </div>
                     <div className="h-px bg-line opacity-25" />
@@ -323,19 +207,21 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
                       </div>
                     </div>
                   </div>
-                  {status !== "idle" && (
-                    <div className="h-px bg-line opacity-25" />
-                  )}
-                  {status !== "idle" && (
-                    <div
-                      className={`p-3 rounded-sm text-sm font-medium transition-all duration-300 ${
-                        status === "success"
-                          ? "bg-accent-soft/30 text-accent-primary border border-accent-soft"
-                          : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900"
-                      }`}
-                    >
-                      {statusMessage}
-                    </div>
+                  {shouldShowStatus && (
+                    <>
+                      <div className="h-px bg-line opacity-25" />
+                      <div
+                        className={`p-3 rounded-sm text-sm font-medium transition-all duration-300 ${
+                          statusTone === "success"
+                            ? "bg-accent-soft/30 text-accent-primary border border-accent-soft"
+                            : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900"
+                        }`}
+                      >
+                        {status.type === "success" || status.type === "error"
+                          ? status.message
+                          : ""}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -356,8 +242,9 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
               }}
             >
               <GenerateButton
-                isLoading={isGenerating}
-                onClick={handleGenerate}
+                isLoading={isProcessing}
+                disabled={!canGenerate}
+                onClick={generateSubset}
               />
             </div>
           </div>

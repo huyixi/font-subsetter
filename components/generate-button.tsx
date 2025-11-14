@@ -2,17 +2,19 @@ import { Download, Loader2 } from "lucide-react";
 
 interface GenerateButtonProps {
   isLoading: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }
 
 export default function GenerateButton({
   isLoading,
+  disabled,
   onClick,
 }: GenerateButtonProps) {
   return (
     <button
       onClick={onClick}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
       className="relative px-8 md:px-12 py-3 md:py-4 rounded-sm transition-all duration-700 disabled:opacity-50 disabled:cursor-not-allowed group overflow-hidden"
       style={{
         boxShadow:
