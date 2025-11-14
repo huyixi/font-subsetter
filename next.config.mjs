@@ -1,4 +1,13 @@
 /** @type {import('next').NextConfig} */
+const externalPackages = [
+  'subset-font',
+  'harfbuzzjs',
+  'fontverter',
+  'fonteditor-core',
+  'wawoff2',
+  'woff2sfnt-sfnt2woff',
+]
+
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -6,24 +15,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    serverComponentsExternalPackages: [
-      'subset-font',
-      'harfbuzzjs',
-      'fontverter',
-      'fonteditor-core',
-      'wawoff2',
-      'woff2sfnt-sfnt2woff',
-    ],
-    serverExternalPackages: [
-      'subset-font',
-      'harfbuzzjs',
-      'fontverter',
-      'fonteditor-core',
-      'wawoff2',
-      'woff2sfnt-sfnt2woff',
-    ],
-  },
+  serverExternalPackages: externalPackages,
 }
 
 export default nextConfig
