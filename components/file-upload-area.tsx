@@ -28,7 +28,12 @@ export default function FileUploadArea({ onFontUpload, uploadedFont }: FileUploa
     const files = e.dataTransfer.files
     if (files && files[0]) {
       const file = files[0]
-      if (file.name.endsWith('.ttf') || file.name.endsWith('.otf') || file.name.endsWith('.woff2')) {
+      if (
+        file.name.endsWith('.ttf') ||
+        file.name.endsWith('.otf') ||
+        file.name.endsWith('.woff2') ||
+        file.name.endsWith('.woff')
+      ) {
         onFontUpload(file)
       }
     }
@@ -58,7 +63,7 @@ export default function FileUploadArea({ onFontUpload, uploadedFont }: FileUploa
       <input
         ref={fileInputRef}
         type="file"
-        accept=".ttf,.otf,.woff2"
+        accept=".ttf,.otf,.woff2,.woff"
         onChange={handleFileSelect}
         className="hidden"
       />
@@ -80,9 +85,7 @@ export default function FileUploadArea({ onFontUpload, uploadedFont }: FileUploa
             <Upload className="w-10 h-10 text-accent-primary" />
             <div>
               <p className="text-base font-medium text-fg-primary mb-1">上传字体文件</p>
-              <p className="text-sm text-fg-muted">
-                支持 TTF、OTF、WOFF2 格式 · 点击或拖放上传
-              </p>
+              <p className="text-sm text-fg-muted">支持 TTF、OTF、WOFF2、WOFF 格式 · 点击或拖放上传</p>
             </div>
           </>
         )}

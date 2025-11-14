@@ -2,6 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { PresetCharsetId, PresetCharsetMeta } from "@/lib/presetCharsets";
+import {
+  DEFAULT_OUTPUT_FORMAT,
+  OUTPUT_FORMATS,
+  buildSubsetFilename,
+  type OutputFormat,
+} from "@/lib/outputFormats";
 import CharacterPresets from "./character-presets";
 import FileUploadArea from "./file-upload-area";
 import CharacterInput from "./character-input";
@@ -30,6 +36,9 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
     buildPresetState(presets),
   );
   const [isVisible, setIsVisible] = useState(false);
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>(
+    DEFAULT_OUTPUT_FORMAT,
+  );
   const presetCache = useRef<Partial<Record<PresetCharsetId, string>>>({});
 
   useEffect(() => {
@@ -98,23 +107,50 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
     setStatus("idle");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const formData = new FormData();
+      formData.append("font", uploadedFont);
+      formData.append("characters", characters);
+      formData.append("format", outputFormat);
 
-      const blob = new Blob(["mock font data"], { type: "font/ttf" });
+      const response = await fetch("/api/subset", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = "字体子集生成失败";
+        try {
+          const errorData = (await response.json()) as { error?: string };
+          if (errorData?.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // ignore JSON parsing errors
+        }
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
+      const downloadName = buildSubsetFilename(
+        uploadedFont.name,
+        outputFormat,
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `subset-${uploadedFont.name}`;
+      link.download = downloadName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
       setStatus("success");
-      setStatusMessage("字体子集已生成并下载成功");
+      setStatusMessage(`字体子集（${outputFormat.toUpperCase()}）已生成并下载`);
     } catch (error) {
       setStatus("error");
-      setStatusMessage("生成字体子集时出错");
+      setStatusMessage(
+        error instanceof Error ? error.message : "生成字体子集时出错",
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -208,7 +244,7 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
                 <div className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4 pl-1">
                   第二步 · 字符选择
                 </div>
-                <div className="space-y-6 rounded-lg p-8 from-bg/50 to-bg-alt/30 border-1">
+                <div className="space-y-6 rounded-lg p-8 bg-gradient-to-b from-bg/50 to-bg-alt/30 border border-line ring-1 ring-inset ring-accent/5">
                   <div>
                     <div className="text-xs font-medium text-fg-muted uppercase tracking-widest mb-3 pl-1 opacity-75">
                       预设字符集
@@ -245,20 +281,49 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
                 <div className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4 pl-1">
                   状态面板
                 </div>
-                <div className="bg-bg/60 border border-line/50 rounded-md p-6 space-y-4 cursor-default pointer-events-none select-none">
+                <div className="bg-bg/60 border border-line/50 rounded-md p-6 space-y-4">
                   <div className="space-y-3">
                     <div>
-                      <p className="text-xs text-fg-muted mb-2">字体文件</p>
-                      <p className="text-sm text-fg-secondary font-mono font-medium">
+                      <p className="text-xs text-fg-muted mb-2 select-none">
+                        字体文件
+                      </p>
+                      <p className="text-sm text-fg-secondary font-mono font-medium select-none">
                         {uploadedFont ? uploadedFont.name : "未选择"}
                       </p>
                     </div>
                     <div className="h-px bg-line opacity-25" />
                     <div>
-                      <p className="text-xs text-fg-muted mb-2">字符数</p>
-                      <p className="text-sm text-fg-secondary font-mono font-medium">
+                      <p className="text-xs text-fg-muted mb-2 select-none">
+                        字符数
+                      </p>
+                      <p className="text-sm text-fg-secondary font-mono font-medium select-none">
                         {characters.length} 字符
                       </p>
+                    </div>
+                    <div className="h-px bg-line opacity-25" />
+                    <div>
+                      <p className="text-xs text-fg-muted mb-2 select-none">
+                        输出格式
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {OUTPUT_FORMATS.map((format) => {
+                          const isActive = outputFormat === format.id;
+                          return (
+                            <button
+                              key={format.id}
+                              type="button"
+                              onClick={() => setOutputFormat(format.id)}
+                              className={`px-3 py-1.5 text-xs font-semibold rounded-sm border transition-all duration-200 ${
+                                isActive
+                                  ? "border-accent-primary bg-accent-soft/30 text-accent-primary shadow-sm"
+                                  : "border-line/60 bg-transparent text-fg-muted hover:text-fg-primary hover:border-accent-primary/60"
+                              }`}
+                            >
+                              {format.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                   {status !== "idle" && (

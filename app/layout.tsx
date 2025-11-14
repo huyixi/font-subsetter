@@ -44,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" className="light" style={{ colorScheme: "light" }} suppressHydrationWarning>
       <body className={`${_notoSansSC.className} font-sans-cn antialiased`}>
         <Providers>{children}</Providers>
         <Analytics />
