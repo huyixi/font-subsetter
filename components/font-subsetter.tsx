@@ -131,10 +131,7 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
       }
 
       const blob = await response.blob();
-      const downloadName = buildSubsetFilename(
-        uploadedFont.name,
-        outputFormat,
-      );
+      const downloadName = buildSubsetFilename(uploadedFont.name, outputFormat);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -244,7 +241,7 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
                 <div className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4 pl-1">
                   第二步 · 字符选择
                 </div>
-                <div className="space-y-6 rounded-lg p-8 bg-gradient-to-b from-bg/50 to-bg-alt/30 border border-line ring-1 ring-inset ring-accent/5">
+                <div className="space-y-6 rounded-lg p-8  from-bg/50 to-bg-alt/30 border border-line">
                   <div>
                     <div className="text-xs font-medium text-fg-muted uppercase tracking-widest mb-3 pl-1 opacity-75">
                       预设字符集
