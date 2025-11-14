@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 28, "column": 0}, "map": {"version":3,"sources":["file:///Users/huyixi/i/font-subsetter/components/theme-provider.tsx"],"sourcesContent":["'use client'\n\nimport * as React from 'react'\nimport {\n  ThemeProvider as NextThemesProvider,\n  type ThemeProviderProps,\n} from 'next-themes'\n\nexport function ThemeProvider({ children, ...props }: ThemeProviderProps) {\n  return <NextThemesProvider {...props}>{children}</NextThemesProvider>\n}\n"],"names":[],"mappings":";;;;;AAGA;AAHA;;;AAQO,SAAS,cAAc,EAAE,QAAQ,EAAE,GAAG,OAA2B;IACtE,qBAAO,6WAAC,ySAAkB;QAAE,GAAG,KAAK;kBAAG;;;;;;AACzC"}},
+    {"offset": {"line": 51, "column": 0}, "map": {"version":3,"sources":["file:///Users/huyixi/i/font-subsetter/app/providers.tsx"],"sourcesContent":["'use client'\n\nimport type { ReactNode } from 'react'\nimport { ThemeProvider } from '@/components/theme-provider'\n\ninterface ProvidersProps {\n  children: ReactNode\n}\n\nexport function Providers({ children }: ProvidersProps) {\n  return (\n    <ThemeProvider attribute=\"class\" defaultTheme=\"system\" enableSystem disableTransitionOnChange>\n      {children}\n    </ThemeProvider>\n  )\n}\n"],"names":[],"mappings":";;;;;AAGA;AAHA;;;AASO,SAAS,UAAU,EAAE,QAAQ,EAAkB;IACpD,qBACE,6WAAC,iJAAa;QAAC,WAAU;QAAQ,cAAa;QAAS,YAAY;QAAC,yBAAyB;kBAC1F;;;;;;AAGP"}}]
+}

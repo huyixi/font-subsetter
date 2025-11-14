@@ -64,42 +64,47 @@ __turbopack_context__.s([
     "PRESET_CHARSET_META",
     ()=>PRESET_CHARSET_META,
     "inlineCharsetMap",
-    ()=>inlineCharsetMap
+    ()=>inlineCharsetMap,
+    "isPresetCharsetId",
+    ()=>isPresetCharsetId
 ]);
 const PRESET_CHARSET_META = [
     {
-        id: 'digits',
-        label: '数字 0-9',
-        sizeHint: 10,
-        type: 'inline'
-    },
-    {
-        id: 'latin',
-        label: '英文 A-Z a-z',
-        sizeHint: 52,
-        type: 'inline'
-    },
-    {
-        id: 'cn-3500',
-        label: '常用汉字 3500',
+        id: "cn-3500",
+        label: "常用汉字 3500",
         sizeHint: 3500,
-        type: 'remote',
-        path: '/charsets/cn-3500.txt'
+        type: "remote",
+        path: "/charsets/cn-3500.txt"
     },
     {
-        id: 'cn-7000',
-        label: '常用汉字 7000',
+        id: "cn-7000",
+        label: "常用汉字 7000",
         sizeHint: 7000,
-        type: 'remote',
-        path: '/charsets/cn-7000.txt'
+        type: "remote",
+        path: "/charsets/cn-7000.txt"
+    },
+    {
+        id: "digits",
+        label: "数字 0-9",
+        sizeHint: 10,
+        type: "inline"
+    },
+    {
+        id: "latin",
+        label: "英文 A-Z a-z",
+        sizeHint: 52,
+        type: "inline"
     }
 ];
 const inlineCharsetMap = {
-    digits: '0123456789',
-    latin: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-    'cn-3500': undefined,
-    'cn-7000': undefined
+    digits: "0123456789",
+    latin: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+    "cn-3500": undefined,
+    "cn-7000": undefined
 };
+function isPresetCharsetId(value) {
+    return PRESET_CHARSET_META.some((preset)=>preset.id === value);
+}
 }),
 "[project]/lib/presetCharsetService.ts [app-rsc] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
@@ -116,10 +121,25 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$presetCharsets$2e$ts_
 ;
 ;
 ;
+const isHttpUrl = (value)=>value.startsWith('http://') || value.startsWith('https://');
+async function fetchCharset(id, url) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.error(`Failed to fetch charset file for ${id} from ${url}: ${response.status} ${response.statusText}`);
+            return null;
+        }
+        const content = await response.text();
+        return content.trim();
+    } catch (error) {
+        console.error(`Failed to fetch charset file for ${id} from ${url}:`, error);
+        return null;
+    }
+}
 function getPresetMetadata() {
     return __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$presetCharsets$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["PRESET_CHARSET_META"];
 }
-async function loadPresetCharset(id) {
+async function loadPresetCharset(id, options = {}) {
     const inlineCharset = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$presetCharsets$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["inlineCharsetMap"][id];
     if (inlineCharset) {
         return inlineCharset;
@@ -128,12 +148,23 @@ async function loadPresetCharset(id) {
     if (!meta || meta.type !== 'remote' || !meta.path) {
         return null;
     }
-    const relativePath = meta.path.startsWith('/') ? meta.path.slice(1) : meta.path;
+    if (isHttpUrl(meta.path)) {
+        return fetchCharset(id, meta.path);
+    }
+    const normalizedPath = meta.path.startsWith('/') ? meta.path : `/${meta.path}`;
+    const relativePath = normalizedPath.slice(1);
     const filePath = __TURBOPACK__imported__module__$5b$externals$5d2f$node$3a$path__$5b$external$5d$__$28$node$3a$path$2c$__cjs$29$__["default"].join(process.cwd(), 'public', relativePath);
     try {
         const content = await __TURBOPACK__imported__module__$5b$externals$5d2f$node$3a$fs__$5b$external$5d$__$28$node$3a$fs$2c$__cjs$29$__["promises"].readFile(filePath, 'utf8');
         return content.trim();
     } catch (error) {
+        if (options.baseUrl) {
+            const fallbackUrl = new URL(normalizedPath, options.baseUrl).toString();
+            const remoteContent = await fetchCharset(id, fallbackUrl);
+            if (remoteContent) {
+                return remoteContent;
+            }
+        }
         console.error(`Failed to load charset file for ${id}:`, error);
         return null;
     }
