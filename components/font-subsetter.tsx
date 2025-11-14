@@ -193,11 +193,11 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
             {/* Presets and character input in two column layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div
-                className={`lg:col-span-2 space-y-8 transform transition-all duration-1000 ${
+                className={`lg:col-span-2 transform transition-all duration-1000 ${
                   isVisible
                     ? "translate-y-0 opacity-100"
                     : "translate-y-4 opacity-0"
-                } rounded-lg p-8 bg-gradient-to-b from-bg/50 to-bg-alt/30 border border-line ring-1 ring-inset ring-accent/5`}
+                }`}
                 style={{
                   animation: isVisible
                     ? "brushStrokeIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards"
@@ -205,28 +205,26 @@ export default function FontSubsetter({ presets }: FontSubsetterProps) {
                   opacity: 0,
                 }}
               >
-                <div>
-                  <div className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-6 pl-1">
-                    第二步 · 字符选择
+                <div className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4 pl-1">
+                  第二步 · 字符选择
+                </div>
+                <div className="space-y-6 rounded-lg p-8 from-bg/50 to-bg-alt/30 border-1">
+                  <div>
+                    <div className="text-xs font-medium text-fg-muted uppercase tracking-widest mb-3 pl-1 opacity-75">
+                      预设字符集
+                    </div>
+                    <CharacterPresets
+                      presets={presets}
+                      onPresetAdd={handlePresetAdd}
+                      addedPresets={addedPresets}
+                    />
                   </div>
-                  <div className="space-y-6">
-                    <div>
-                      <div className="text-xs font-medium text-fg-muted uppercase tracking-widest mb-3 pl-1 opacity-75">
-                        预设字符集
-                      </div>
-                      <CharacterPresets
-                        presets={presets}
-                        onPresetAdd={handlePresetAdd}
-                        addedPresets={addedPresets}
-                      />
-                    </div>
-                    <div className="h-px bg-line" />
-                    <div>
-                      <CharacterInput
-                        value={characters}
-                        onChange={handleCharacterChange}
-                      />
-                    </div>
+                  <div className="h-px bg-line" />
+                  <div>
+                    <CharacterInput
+                      value={characters}
+                      onChange={handleCharacterChange}
+                    />
                   </div>
                 </div>
               </div>

@@ -47,7 +47,7 @@ export default function CharacterPresets({
                 : "border-border bg-card hover:border-accent-primary hover:bg-secondary"
             }`}
           >
-            <div className="text-sm font-medium text-fg-primary mb-1">
+            <div className="text-sm font-medium text-fg-primary">
               {preset.label}
             </div>
           </div>
